@@ -1,9 +1,0 @@
----
-title: "TidyTuesday_2020-11-12"
-author: "Hanna Mahler"
-date: "12 11 2020"
-output: html_document
----
-
-# Test
-This is a test script
