@@ -1,0 +1,105 @@
+---
+title: "TidyTuesday_2020-11-24"
+author: "Hanna Mahler"
+date: "24 11 2020"
+output: html_document
+---
+
+1. Load libraries and get data
+```{r setup, include = FALSE}
+# load libraries
+library(tidyverse)
+library(ggplot2)
+library(rvest)
+library(here)
+library(plotly)
+# Get the Data
+hike_data <- readr::read_rds(url('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-11-24/hike_data.rds'))
+```
+
+2. Tidy data
+```{r}
+head(hike_data, n =20)
+hike_data = hike_data %>%
+  separate(location,
+           into = c("location_broad", "location_narrow"),
+           sep = "--",
+           remove = TRUE)
+hike_data = hike_data %>%
+  separate(length,
+           into = c("length", "trip_type"),
+           sep = ",",
+           remove = TRUE)
+hike_data = hike_data %>%
+  separate(length,
+           into = c("length", "miles"),
+           sep = " ",
+           remove = TRUE)
+hike_data = select(hike_data, -miles)
+hike_data$length = as.numeric(hike_data$length)
+hike_data$gain = as.numeric(hike_data$gain)
+hike_data$rating = as.numeric(hike_data$rating)
+hike_data$highpoint = as.numeric(hike_data$highpoint)
+hike_data$location_broad <- trimws(hike_data$location_broad, which = c("right")) # this removes white spaces that popped up at the end of some names and that resulted in two factors levels: "name" and "name "
+hike_data$location_broad = as.factor(hike_data$location_broad)
+head(hike_data, n = 20)
+```
+
+3. Plot
+
+3.1 Length and gain
+```{r}
+hike_data_80 = subset(hike_data, length < 80)
+length_gain = ggplot(data = hike_data_80, aes(x = length, y = gain)) +
+  geom_point() + 
+  theme_gray() + 
+  labs(x = "Length of roundtrip in miles", y = "Gain in miles") +
+  geom_smooth(method=lm, color = "darkgreen") 
+length_gain
+```
+
+```{r}
+ggplotly(length_gain)
+# this is not working yet
+```
+
+3.2 Length by region
+```{r}
+hike_data_80 = subset(hike_data, length < 80)
+ggplot(data = hike_data_80, aes(x = length, y = reorder(location_broad, -length))) + 
+  geom_boxplot() +
+  theme_gray() +
+  labs(x = "Length of roundtrip in miles", y = "Region")
+```
+
+3.3 Gain by region
+```{r}
+hike_data_10000 = subset(hike_data, gain < 10000)
+ggplot(data = hike_data_10000, aes(x = gain, y = reorder(location_broad, -gain))) + 
+  geom_boxplot() +
+  theme_gray() +
+  labs(x = "Gain per trip in miles", y = "Region")
+```
+
+4. Inferential statistics
+
+4.1. Predicting rating
+```{r}
+# first, scale the variables
+hike_data$length_z = scale(hike_data$length)
+hike_data$gain_z = scale(hike_data$gain)
+hike_data$rating_z = scale(hike_data$rating)
+hike_data$highpoint_z = scale(hike_data$highpoint)
+# check for normality
+hist(hike_data$length) # definitely not normally distributed
+hist(hike_data$gain) # definitely not normally distributed
+hist(hike_data$highpoint) # definitely not normally distributed
+hist(hike_data$rating) # definitely not normally distributed
+# linear regression model
+model1 = lm(rating ~ length + gain + highpoint, data = hike_data)
+summary(model1) # this is a terrible model!
+```
+
+
+
+
