@@ -1,0 +1,108 @@
+---
+title: "TidyTuesday_2020-12-08"
+author: "Hanna Mahler"
+date: "9 12 2020"
+output: html_document
+---
+
+1. Load libraries
+```{r, warning = FALSE}
+library(tidytuesdayR)
+library(tidyverse)
+library(plotly)
+library(tidytext)
+library(wordcloud)
+library(countrycode)
+```
+
+2. Load data
+```{r}
+women <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-12-08/women.csv')
+women = separate(women, name, c("firstname", "lastname"))
+head(women)
+women$category = as.factor(women$category)
+women$continent = countrycode(sourcevar = women$country,
+                              origin = "country.name",
+                              destination = "continent")
+women$country = as.factor(women$country)
+women$continent = as.factor(women$continent)
+summary(women)
+```
+
+3. Summarize data
+```{r}
+countries_category = xtabs(~continent + category, data = women)
+countries_category
+```
+
+4. Visualise data
+
+4.1 World map
+```{r}
+women_country = count(women, country)
+women_country
+
+world_map = map_data("world")
+women_country$region = women_country$country
+world_map2 = left_join(women_country, world_map, by = "region")
+world_map2
+
+map1 = ggplot(world_map2, aes(x = long, y = lat, group = group)) + 
+  geom_polygon(data = world_map, fill = "lightgrey", color = "black") +
+  geom_polygon(aes(fill = n), colour = "black") + 
+  scale_fill_gradientn(colors = c("lightblue", "blue")) +
+  theme_minimal()
+map1
+```
+
+```{r}
+ggplotly(map1, tooltip = "n") %>%
+  highlight(
+    "plotly_hover",
+    selected = attrs_selected(line = list(color = "black"))
+) %>%
+  widgetframe::frameWidget()
+```
+
+4.2 Word cloud
+
+Of words within the descriptions
+```{r, warning = FALSE}
+women_tidy = women
+women_tidy = unnest_tokens(women_tidy, word, description)
+women_freq = count(women_tidy, word, sort = TRUE)
+head(women_freq, n= 20)
+# remove stop words:
+women_freq_nonstop <- women_freq %>% 
+  anti_join(stop_words)
+# add further stop words:
+more_stop_words <- tibble(word = c("19", "20", "based"))
+women_freq_nonstop <- women_freq_nonstop %>% 
+   anti_join(more_stop_words)
+head(women_freq_nonstop)
+
+wordcloud(words = women_freq_nonstop$word, freq = theses_freq_nonstop$n,
+          min.freq = 5, max.words=100, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Paired"))
+```
+
+4.3 Bubble diagram
+
+```{r}
+women_subset = subset(women, women$category != "All")
+women_subset = subset(women_subset, women_subset$continent != "NA")
+head(women_subset)
+
+graph1 = ggplot(data = women_subset) + 
+  geom_count(mapping = aes(x = category, y = continent), color = "darkblue", fill = "blue", alpha = 0.6) + 
+  theme_minimal()
+graph1
+```
+
+
+
+
+
+
+
+
