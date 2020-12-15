@@ -1,0 +1,61 @@
+---
+title: "TidyTuesday_2020-12-15"
+author: "Hanna Mahler"
+date: "9 12 2020"
+output: html_document
+---
+
+1. Load libraries
+```{r, warning = FALSE}
+library(tidytuesdayR)
+library(tidyverse)
+library(plotly)
+library(maps)
+```
+
+2. Load data
+```{r}
+ninja <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-12-15/ninja_warrior.csv')
+head(ninja, n= 20)
+ninja$location = as.factor(ninja$location)
+ninja$round_stage = as.factor(ninja$round_stage)
+ninja$obstacle_name = as.factor(ninja$obstacle_name)
+summary(ninja)
+```
+
+3. Summarise data
+```{r}
+obstacles = count(ninja, obstacle_name)
+ninja = left_join(ninja, obstacles, by = "obstacle_name")
+head(ninja)
+
+tabs1 = xtabs(~ obstacle_name + obstacle_order, data = subset(ninja, n > 2))
+tabs1
+tabs2 = xtabs(~ season + obstacle_name, data = subset(ninja, n > 2))
+tabs2
+```
+
+4. Visualise data
+
+4.1 World map
+```{r}
+## get geographical location for cities (long-lat)
+data(world.cities)
+world.cities$location = world.cities$name
+head(world.cities)
+ninja_geo = left_join(ninja, world.cities, by = "location")
+head(ninja_geo)
+
+## create world map
+map_data("world") %>% 
+  ggplot() +
+  borders(fill="gray") + 
+  geom_point(data = ninja_geo, 
+             aes(x = long, y = lat), 
+             colour = "blue", alpha = 0.5) + 
+  theme_minimal()
+
+```
+
+
+
