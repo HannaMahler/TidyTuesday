@@ -1,0 +1,90 @@
+---
+title: "TidyTuesday_2021-01-12"
+author: "Hanna Mahler"
+date: "12 1 2021"
+output: html_document
+---
+
+1. Load libraries
+```{r, message = FALSE}
+library(tidytuesdayR)
+library(tidyverse)
+library(plotly)
+library(maps)
+library(readr)
+```
+
+2. Load data
+```{r, message = FALSE}
+artwork <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-01-12/artwork.csv')
+artists <- readr::read_csv("https://github.com/tategallery/collection/raw/master/artist_data.csv")
+```
+
+3. Clean data
+```{r}
+artwork_tidy = artwork
+artwork_tidy$artistRole = as.factor(artwork_tidy$artistRole)
+head(artwork_tidy, n = 20)
+summary(artwork_tidy)
+```
+
+```{r}
+artists_tidy = select(artists, -url)
+artists_tidy = separate(artists_tidy, placeOfBirth, c("City_birth", "Country_birth"), sep = ",")
+artists_tidy = separate(artists_tidy, placeOfDeath, c("City_death", "Country_death"), sep = ",")
+
+head(artists_tidy, n = 20)
+summary(artists_tidy)
+```
+
+
+4. Visualise data
+
+4.1 Date of birth of artists
+```{r, warning = FALSE}
+artists_tidy_noNA = subset(artists_tidy, artists_tidy$gender != "NA")
+ggplot(artists_tidy_noNA) + 
+  geom_density(mapping = aes(x = yearOfBirth, colour = gender, fill = gender), alpha = 0.5) + 
+  theme_light()
+```
+
+4.2 Place of birth of artists
+```{r}
+## get geographical location for cities of birth (long-lat)
+data(world.cities)
+world.cities$location = world.cities$name
+artists_tidy$location = artists_tidy$City_birth
+head(world.cities)
+artists_geo = left_join(artists_tidy, world.cities, by = "location")
+head(artists_geo)
+
+## create world map
+map_data("world") %>% 
+  ggplot() +
+  borders(fill="lightgray") + 
+  geom_point(data = artists_geo, 
+             aes(x = long, y = lat, colour = gender), 
+             alpha = 0.5, size = 1.1) + 
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
