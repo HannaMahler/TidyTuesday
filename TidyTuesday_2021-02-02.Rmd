@@ -1,0 +1,90 @@
+---
+title: "TidyTuesday_2021-02-02"
+author: "Hanna Mahler"
+date: "5 2 2021"
+output: html_document
+---
+
+1. Load libraries
+```{r, message = FALSE}
+library(tidyverse)
+library(plotly)
+library(gganimate)
+library(gifski)
+```
+
+
+2. Load data
+```{r}
+all <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-02/hbcu_all.csv')
+head(all)
+```
+
+3. Tidy data
+```{r}
+# new data frame with gender only
+all_gender = select(all, "Year", "Total enrollment", "Males", "Females")
+all_gender = all_gender %>%
+  pivot_longer(cols = c("Males", "Females"), names_to = "Gender", values_to = "Number")
+head(all_gender)
+
+# new data frame with school type only
+all_type = select(all, "Year", "Total enrollment", "Total - Public", "Total - Private")
+all_type = all_type %>%
+  pivot_longer(cols = c("Total - Public", "Total - Private"), names_to = "Type", values_to = "Number") %>%
+  separate(Type, c("Superfluous", "School_type")) %>%
+  select(-"Superfluous")
+head(all_type)
+
+# new data frame with school type and duration
+all_type_dur = select(all, -c("Males", "Females", "4-year", "2-year", "Total - Private", "Total - Public"))
+all_type_dur = all_type_dur %>%
+  pivot_longer(cols = c("4-year - Public":"2-year - Private"), names_to = "Type-both", values_to = "Number") %>%
+  separate("Type-both", c("Duration", "superfluous", "School_type")) %>%
+  select(-"superfluous")
+head(all_type_dur)
+```
+
+4. Plotting
+
+4.1 Development of gender
+```{r}
+ggplot(all_gender) +
+  geom_smooth(mapping = aes(x = Year, y = Number, colour = Gender)) +
+  ylim(0,200000) +
+  labs(x = "Year of graduation", y = "Number of students", title = "Gender of University graduates in the US")
+```
+
+
+
+```{r}
+plot1 = ggplot(all_gender, aes(x = Gender, y = Number)) +
+  geom_col(aes(fill = Gender))
+anim1 = plot1 +
+  transition_states(Year, transition_length = 2, state_length = 1) +
+  ggtitle('Now showing {closest_state}', subtitle = 'Frame {frame} of {nframes}')
+anim1
+```
+
+
+
+4.2 Development of school types
+```{r}
+ggplot(all_type) +
+  geom_smooth(mapping = aes(x = Year, y = Number, colour = School_type)) +
+  ylim(0,250000) +
+  labs(x = "Year of graduation", y = "Number of students", title = "University graduates in the US by school type")
+```
+
+4.3 Development of school types and study duration
+```{r}
+ggplot(all_type_dur) +
+  geom_smooth(mapping = aes(x = Year, y = Number, colour = Duration)) +
+  ylim(0,200000) +
+  labs(x = "Year of graduation", y = "Number of students", title = "University graduates in the US by school type") +
+  facet_wrap(~ School_type)
+```
+
+
+
+
