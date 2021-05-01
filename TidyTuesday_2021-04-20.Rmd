@@ -1,0 +1,121 @@
+---
+title: "TidyTuesday_2021-04-31"
+author: "Hanna Mahler"
+date: "30 4 2021"
+output: html_document
+---
+
+1. Load libraries
+```{r, message = FALSE}
+library(tidyverse)
+library(plotly)
+library(gganimate)
+library(gifski)
+library(tidytuesdayR)
+library(tidytext)
+library(wordcloud)
+library(countrycode)
+```
+
+
+2. Load data
+```{r}
+titles_all <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-04-20/netflix_titles.csv')
+head(titles_all, n = 40)
+```
+
+3. Clean data
+```{r}
+#titles_all = titles_all %>%
+#  separate(date_added, "monthday_added", "year_added", sep = ",", extra = "drop")
+
+#titles_all$release_relay = titles_all$release_year - titles_all$year_added
+#head(titles_all, n = 40)
+
+#titles_all = titles_all %>%
+#  separate(country, "main_country", "other_countries", sep = ",", extra = "drop", fill = "right")
+
+titles_all$country_clean = gsub("(.*),.*", "\\1", titles_all$country)
+head(titles_all$country_clean, n = 60)
+```
+
+4. Plotting
+
+4.1 World map
+```{r}
+
+titles_all$country_clean2 = countryname(sourcevar = titles_all$country_clean, destination = "cldr.short.en", warn = FALSE)
+titles_all = titles_all %>%
+  mutate(country_clean3 = replace(country_clean2, country_clean2 == "US", "USA"))
+view(unique(titles_all$country_clean3))
+
+titles_all$continent = countryname(sourcevar = titles_all$country_clean, destination = "continent", warn = FALSE)
+view(titles_all$continent)
+
+  
+titles_country = count(titles_all, country_clean3)
+titles_country$region = titles_country$country_clean3
+head(titles_country, n = 40)
+
+titles_country_top = titles_country %>%
+  filter(n > 10) %>%
+  filter(region != "NA") %>%
+  arrange(desc(n))
+titles_country_top$continent = countryname(sourcevar = titles_country_top$region, destination = "continent", warn = FALSE)
+
+head(titles_country_top, n = 50)
+
+world_map = map_data("world")
+world_map2 = left_join(titles_country, world_map, by = "region")
+world_map2
+
+map1 = ggplot(world_map2, aes(x = long, y = lat, group = group)) + 
+  geom_polygon(data = world_map, fill = "lightgrey", color = "black") +
+  geom_polygon(aes(fill = n), colour = "black") + 
+  scale_fill_gradientn(colors = c("lightblue", "blue")) +
+  theme_minimal() + 
+  labs(title = "Number of Netflix titles per country", x = "Longitude", y = "Latitude") +
+  scale_fill_gradientn(colors = c("lightblue", "blue", "purple", "red", "darkred"))
+
+map1
+```
+Interaktive Karte
+```{r}
+ggplotly(map1, tooltip = "n") %>%
+  highlight(
+    "plotly_hover",
+    selected = attrs_selected(line = list(color = "black"))
+) %>%
+  widgetframe::frameWidget()
+```
+
+
+4.2 Years
+```{r}
+ggplot(titles_all) +
+  geom_histogram(mapping = aes(x = release_year), binwidth = 5, color = "white")
+```
+
+
+```{r}
+ggplot(titles_all) +
+  geom_histogram(mapping = aes(x = release_year, fill = continent), 
+                 binwidth = 5, color = "white") + 
+  facet_grid(rows = vars(continent))
+```
+
+
+```{r}
+ggplot(arrange(filter(titles_country_top, n > 50), n), aes(x = n, y = reorder(region, n))) +
+  geom_col(mapping = aes(fill = continent)) +
+  labs(y = "Country", x = "Number of Netflix titles")
+```
+
+
+
+
+```{r}
+#ggplot(titles_all) +
+#  geom_histogram(mapping = aes(x = added_year), binwidth = 5, color = "white")
+```
+
